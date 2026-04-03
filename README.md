@@ -1,119 +1,121 @@
-# Possibilistic supervision experiments
+# Probabilistic classification from possibilistic data: computing Kullback–Leibler projection with a possibility distribution
 
-This repository contains two experiment families built around training targets derived from a possibilistic description $\pi$ and its induced admissible KL-box $\mathcal{F}^{\mathrm{box}}(\pi)$:
+This repository contains the code for the experiments reported in the following paper:
 
-- a **synthetic top-k** benchmark for controlled multi-class classification experiments,
-- a **ChaosNLI** pipeline for real-text experiments on human-disagreement NLI data.
+> **Probabilistic classification from possibilistic data: computing Kullback–Leibler projection with a possibility distribution**
+> Ismaïl Baaj and Pierre Marquis
+> [arXiv:2604.01939](https://arxiv.org/abs/2604.01939)
 
-The repository studies how different target constructions behave when supervision is derived from a possibility ordering rather than from a single hard label.
+```bibtex
+@misc{baaj2026probabilistic,
+      title={Probabilistic classification from possibilistic data: computing
+             Kullback-Leibler projection with a possibility distribution},
+      author={Isma\"{i}l Baaj and Pierre Marquis},
+      year={2026},
+      eprint={2604.01939},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2604.01939},
+}
+```
 
-## What is implemented
+---
 
-### Synthetic top-k setting
+## License
 
-The synthetic benchmark compares two training rules.
+This project is licensed under the [Apache License 2.0](LICENSE).
 
-- **Model A (projection target):** at each step, project the current prediction $q(x)$ onto the sample-specific box $\mathcal{F}^{\mathrm{box}}(\pi)$ with Dykstra’s algorithm, then train on
-  $$
-  \mathrm{KL}\!\left(p^\star(x,\pi)\,\|\,q(x)\right).
-  $$
-- **Model B (fixed target):** train directly on the fixed target $\dot p(\pi)$ obtained from the antipignistic reverse mapping:
-  $$
-  \mathrm{KL}\!\left(\dot p(\pi)\,\|\,q(x)\right).
-  $$
+---
 
-There is no Model C in the synthetic benchmark.
+## Overview
 
-### ChaosNLI setting
+Given a finite set of classes $\mathcal{Y}$ and a normalized possibility distribution $\pi$ on $\mathcal{Y}$, we construct a non-empty closed convex set $\mathcal{F}^{\mathrm{box}}(\pi) \subseteq \Delta_n$ of admissible probability distributions by combining two requirements:
 
-The ChaosNLI pipeline supports three training modes.
+1. **Dominance constraints.** For every event $A \subseteq Y$, the probability measure $P$ satisfies $N(A) \le P(A) \le \Pi(A)$, where $\Pi$ and $N$ are the possibility and necessity measures induced by $\pi$.
 
-- **Mode A (projection target):** projection-based target derived from the example-specific KL-box.
-- **Mode B (fixed target):** fixed antipignistic target $\dot p$ derived from the vote-induced possibility ordering.
-- **Mode C (vote target):** empirical vote distribution.
+2. **Shape constraints.** The qualitative ordering of $\pi$ is preserved: $\pi_k \ge \pi_{k'} \Longleftrightarrow p_k \ge p_{k'}$ for all classes $k, k'$.
 
-In addition to the standard train/validation/test split protocol, the repository supports a **train-section study** in which model fitting uses one of
+Given a strictly positive probability vector $q \in \Delta_n$ produced by a classifier, we compute its Kullback–Leibler projection onto $\mathcal{F}^{\mathrm{box}}(\pi)$:
 
-- `train_full`,
-- `train_S_amb`,
-- `train_S_easy`,
+$$p^\star = \arg\min_{p \in \mathcal{F}^{\mathrm{box}}(\pi)} D_{\mathrm{KL}}(p \| q).$$
 
-while validation-section selection and test-section evaluation remain defined by a fixed protocol.
+The projection is obtained iteratively by Dykstra's algorithm with Bregman projections associated with the negative entropy. Explicit closed-form projections onto each constraint set (prefix-sum constraints, lower-gap constraints, upper-gap constraints) are derived in the paper and implemented here.
+
+The projection $p^\star$ serves as a training target: the per-instance loss is $\ell(\theta; x, \pi) = D_{\mathrm{KL}}(p^\star \| q_\theta(x))$, which quantifies the smallest KL adjustment of $q_\theta(x)$ needed to satisfy the constraints induced by $\pi$.
+
+---
+
+## Experiments
+
+The repository implements three experiments from the paper.
+
+### Experiment 1: Convergence of the projection algorithm (Section 5.2)
+
+Empirical evaluation of Dykstra's algorithm on synthetic instances with $n = 100$ classes. For each of 100 random runs, a strictly positive possibility distribution $\pi$ and a reference probability vector $q$ are drawn at random. The algorithm is run for several tolerance levels $\tau \in \{10^{-2}, 10^{-3}, 10^{-4}, 10^{-6}, 10^{-8}\}$ and cycle budgets $K_{\max} \in \{10^3, 10^4, 5 \cdot 10^4\}$. The convergence rate, cycle count, final constraint violation, and computation time are recorded.
+
+### Experiment 2: Synthetic learning with possibilistic supervision (Section 5.3)
+
+A controlled multi-class classification setting with $n = 20$ classes, where each training instance is a pair $(x, \pi)$ with $x \in \mathbb{R}^d$ a feature vector and $\pi$ a possibility distribution on $\mathcal{Y}$. Two models are compared:
+
+- **Model A (projection target):** the target is $p^\star(x, \pi) = \arg\min_{p \in \mathcal{F}^{\mathrm{box}}(\pi)} D_{\mathrm{KL}}(p \| q^A(x))$, recomputed from the current prediction at each training step.
+- **Model B (fixed target):** the target is the antipignistic probability $\dot{p}(\pi) \in \Delta_n$ obtained from $\pi$ by the reverse mapping of Section 2.2 of the paper.
+
+The comparison varies over feature dimensions $d \in \{30, 80, 150\}$, training-set sizes $N_{\mathrm{tr}} \in \{200, 500, 1000\}$, and ambiguity levels $\alpha \in \{0.4, 0.6, 0.8, 0.95\}$.
+
+### Experiment 3: ChaosNLI (Section 5.4)
+
+A natural language inference task based on the ChaosNLI dataset (Nie et al., 2020), which provides multiply-annotated examples from SNLI and MultiNLI with $n = 3$ classes (entailment, neutral, contradiction). Three training objectives are compared:
+
+- **Model A (projection target):** KL projection of the current prediction onto $\mathcal{F}^{\mathrm{box}}(\pi)$, where $\pi$ is derived from annotator vote counts.
+- **Model B (antipignistic target):** the fixed probability $\dot{p}(\pi)$ derived from the possibility distribution.
+- **Model C (vote-proportion target):** the normalized vote proportions $\bar{v}$ used directly as a soft target.
+
+The comparison includes training on the full split, on an ambiguity-focused subset ($\mathcal{S}_{\mathrm{amb}}$), and on an easy subset ($\mathcal{S}_{\mathrm{easy}}$), with model selection on three validation sections and final evaluation on three test sections.
 
 ---
 
 ## Repository structure
 
-### Core directories
+### Core packages
 
-- `klbox/`  
-  Possibility ordering, antipignistic reverse mapping, gap selection, linear feasibility systems, Python/C++ Dykstra implementations, and numerical helpers.
+| Directory | Contents |
+|---|---|
+| `klbox/` | Possibility ordering, antipignistic reverse mapping, gap parameter selection, linear feasibility systems, Bregman projections (Propositions 7 and 8 of the paper), Python and C++ implementations of Dykstra's algorithm, and numerical helpers. |
+| `topk/` | Synthetic benchmark: data generation, model heads, projection and fixed targets, training loop, experiment runners, and hyperparameter search. |
+| `nlpbench/` | NLP utilities: cached transformer embeddings (`nlpbench/embeddings.py`), deterministic sampling (`nlpbench/sampling.py`), and the ChaosNLI data loader and split protocol (`nlpbench/chaosnli/`). |
+| `experiment/` | ChaosNLI experiment layer: CLI, target definitions (Mode A projection, Mode B antipignistic, Mode C vote), training loop, evaluation metrics, ambiguity analysis, slice evaluation, and run aggregation. |
+| `common/` | Shared JSON/CSV I/O helpers and deterministic sampling utilities. |
 
-- `topk/`  
-  Synthetic benchmark code: data generation, model heads, targets, training, experiment runners, and hyperparameter search.
+### Shell launchers
 
-- `nlpbench/`  
-  Reusable NLP-side utilities:
-  - `nlpbench/embeddings.py` for cached transformer embeddings,
-  - `nlpbench/sampling.py` for deterministic sampling helpers,
-  - `nlpbench/chaosnli/` for the ChaosNLI loader and data protocol.
+| Script | Purpose |
+|---|---|
+| `run_topk.sh` | End-to-end launcher for the synthetic benchmark (Experiment 2) and the Dykstra convergence sweep (Experiment 1). |
+| `build_chaosnli_embeddings.sh` | Precomputes and caches transformer embeddings for a ChaosNLI split protocol. |
+| `chaosnli.sh` | Main ChaosNLI launcher for one training-section setting across all requested validation-selection protocols. |
+| `chaosnli_snli.sh`, `chaosnli_mnli.sh`, `chaosnli_all.sh` | Convenience wrappers setting `SOURCE_SUBSETS` and `OUT_BASE` before calling `chaosnli.sh`. |
+| `chaosnli_protocol.sh` | Higher-level launcher sweeping several train sections under a shared output root. |
+| `FULL_REPRO.sh` | Repository-wide reproducibility script executing all stages. |
 
-- `experiment/`  
-  ChaosNLI experiment-layer code: CLI, target definitions, training loop, metrics, ambiguity analysis, slice evaluation, and aggregation.
+### Table and export tools
 
-- `common/`  
-  Small shared JSON/CSV I/O helpers and deterministic sampling utilities used across the repository.
-
-### Main shell launchers
-
-- `run_topk.sh`  
-  End-to-end launcher for the synthetic benchmark.
-
-- `build_chaosnli_embeddings.sh`  
-  Precomputes and caches transformer embeddings for a ChaosNLI split protocol.
-
-- `chaosnli.sh`  
-  Main ChaosNLI launcher for one train-section setting across all requested validation-selection protocols.
-
-- `chaosnli_snli.sh`, `chaosnli_mnli.sh`, `chaosnli_all.sh`  
-  Convenience wrappers that set `SOURCE_SUBSETS` and `OUT_BASE` before calling `chaosnli.sh`.
-
-- `chaosnli_protocol.sh`  
-  Higher-level launcher that sweeps several ChaosNLI train sections under a shared output root.
-
-- `FULL_REPRO.sh`  
-  Repository-wide launcher for the default reproducibility workflow.
-
-### Main table/export tools
-
-- `tools/build_chaosnli_results_table.py`  
-  Builds per-protocol ChaosNLI summary tables from saved run JSON files.
-
-- `tools/chaosnli_train_section_article_table.py`  
-  Merges multiple per-protocol ChaosNLI CSV summaries into one article-facing train-section table.
-
-- `tools/chaosnli_slice_sizes.py`  
-  Builds a compact export of train/validation/test section sizes for the ChaosNLI protocol, with optional LaTeX and CSV output.
-
-- `tools/export_chaosnli_protocol.py`  
-  Exports split manifests, slice memberships, thresholds, and protocol metadata for ChaosNLI.
-
-- `tools/extract_chaosnli_thresholds.py`  
-  Collects saved thresholds into a compact summary table. Accepts both `chaosnli_thresholds.json` and the legacy `chaosnli_ambiguity_thresholds.json`.
-
-- `tools/aggregate_topk_runs.py`  
-  Aggregates repeated synthetic runs and writes CSV/LaTeX summaries.
-
-- `tools/build_topk_accuracy_summary_table.py`  
-  Builds the global article-facing synthetic accuracy table.
+| Script | Purpose |
+|---|---|
+| `tools/build_chaosnli_results_table.py` | Builds per-protocol ChaosNLI summary tables from saved run JSONs. |
+| `tools/chaosnli_train_section_article_table.py` | Merges per-protocol CSVs into one article-facing train-section table. |
+| `tools/chaosnli_slice_sizes.py` | Exports train/validation/test section sizes with optional LaTeX output. |
+| `tools/export_chaosnli_protocol.py` | Exports split manifests, slice memberships, thresholds, and protocol metadata. |
+| `tools/extract_chaosnli_thresholds.py` | Collects saved thresholds into a compact summary table. |
+| `tools/aggregate_topk_runs.py` | Aggregates repeated synthetic runs and writes CSV/LaTeX summaries. |
+| `tools/build_topk_accuracy_summary_table.py` | Builds the article-facing synthetic accuracy table (Table 5 of the paper). |
 
 ---
 
 ## Requirements
 
-The codebase uses Python features such as `str | Path` and `list[str]`, so **Python 3.10+** is the practical requirement.
+Python 3.10+ is required (the codebase uses `str | Path` and `list[str]` annotations).
 
-The main dependencies used by the default workflows are:
+Dependencies:
 
 - `numpy`
 - `torch`
@@ -121,11 +123,9 @@ The main dependencies used by the default workflows are:
 - `transformers`
 - `pybind11`
 
-The synthetic CLI requires the C++ projection backend. The ChaosNLI scripts also use the C++ backend by default.
+The projection algorithm uses a compiled C++ backend (`klbox/_dykstra_cpp.cpp`) interfaced via pybind11.
 
 ## Installation
-
-From the repository root:
 
 ```bash
 python3 -m venv .venv
@@ -135,110 +135,45 @@ python3 -m pip install numpy torch tqdm transformers pybind11
 python3 klbox/setup_cpp.py build_ext --inplace
 ```
 
-A quick repository-wide syntax check is:
+To verify the installation:
 
 ```bash
 python3 -m compileall common experiment klbox nlpbench topk tools
-```
-
-A direct benchmark of the projection backend is:
-
-```bash
 python3 synthetic_cli.py dykstra-sweep --n 50 --runs 5 --tau 1e-6 1e-8 --Kmax 1000
 ```
 
-This prints LaTeX tables to standard output.
-
 ---
 
-## Quick start
+## Reproducing the experiments
 
-### Synthetic benchmark
-
-```bash
-./run_topk.sh
-```
-
-### ChaosNLI embeddings only
-
-```bash
-SOURCE_SUBSETS="snli mnli" ./build_chaosnli_embeddings.sh
-```
-
-### ChaosNLI main launcher
-
-```bash
-./chaosnli.sh
-```
-
-### ChaosNLI train-section protocol sweep
-
-```bash
-./chaosnli_protocol.sh
-```
-
-### Repository-wide workflow
+### Full reproducibility
 
 ```bash
 ./FULL_REPRO.sh
 ```
 
----
+This executes all stages: environment setup, C++ build, ChaosNLI embedding precomputation, ChaosNLI train-section sweep, table generation, synthetic benchmark, and synthetic summary tables.
 
-## Running the synthetic top-k benchmark
+### Experiment 1 only (Dykstra convergence evaluation)
 
-## Main launcher
+The convergence sweep is included at the end of `run_topk.sh`. A standalone invocation is:
 
-The synthetic benchmark is driven by:
+```bash
+python3 synthetic_cli.py dykstra-sweep \
+    --n 100 --runs 100 \
+    --tau 1e-2 1e-3 1e-4 1e-6 1e-8 \
+    --Kmax 1000 10000 50000
+```
+
+### Experiment 2 only (synthetic benchmark)
 
 ```bash
 ./run_topk.sh
 ```
 
-This script performs, for each configured setting:
+Default grid: $d \in \{30, 80, 150\}$, $N_{\mathrm{tr}} \in \{200, 500, 1000\}$, $\alpha \in \{0.4, 0.6, 0.8, 0.95\}$, 10 runs per configuration. The class-separation parameter $\beta$ is set as a function of $d$: $\beta = 1.5$ for $d = 30$, $\beta = 0.9$ for $d = 80$, $\beta = 0.6$ for $d = 150$.
 
-1. hyperparameter search for Model A,
-2. hyperparameter search for Model B,
-3. repeated experiment runs,
-4. aggregation of repeated runs,
-5. Dykstra-solver sweeps.
-
-## Default grid
-
-By default, `run_topk.sh` loops over:
-
-- feature dimensions `d = 30, 80, 150`,
-- training sizes `N_tr = 200, 500, 1000`,
-- ambiguity parameters `alpha = 0.4, 0.6, 0.8, 0.95`,
-- run ids `0, 1, ..., 9`.
-
-The class-separation parameter is chosen as a function of `d` inside the script:
-
-- `d=30  -> class_sep=1.5`
-- `d=80  -> class_sep=0.9`
-- `d=150 -> class_sep=0.6`
-
-## What `run_topk.sh` writes
-
-Per-configuration run logs are written under:
-
-- `out/runs_gapwide_stair/`
-
-Aggregated summaries are written under:
-
-- `out/agg_gapwide_stair/`
-
-The final article-style global synthetic table is produced by:
-
-- `tools/build_topk_accuracy_summary_table.py`
-
-and is written by default to:
-
-- `out/big_tables/big_all_test_acc_topk.tex`
-
-## Synthetic smoke test
-
-A small one-configuration smoke test is:
+Smoke test (one configuration, one run):
 
 ```bash
 D_LIST_OVERRIDE="30" \
@@ -251,195 +186,21 @@ HP_LR_GRID_B_OVERRIDE="1e-3" \
 ./run_topk.sh
 ```
 
----
+### Experiment 3 only (ChaosNLI)
 
-## Running ChaosNLI
-
-## Data source and subsets
-
-The loader downloads the ChaosNLI release archive from:
-
-- `https://www.dropbox.com/s/h4j7dqszmpt2679/chaosNLI_v1.0.zip?dl=1`
-
-Supported source subsets are:
-
-- `snli`
-- `mnli`
-
-Subset specifications may be given in either comma-separated or space-separated form. All of the following are accepted:
-
-```bash
-SOURCE_SUBSETS="snli mnli"
-SOURCE_SUBSETS="snli,mnli"
-SOURCE_SUBSETS="mnli snli"
-```
-
-The loader deduplicates subsets and preserves user-facing order, while the embedding-cache naming scheme uses a canonical sorted subset key.
-
-## Embedding caches
-
-The ChaosNLI pipeline uses cached transformer embeddings. A standard precomputation step is:
+Precompute embeddings:
 
 ```bash
 SOURCE_SUBSETS="snli mnli" ./build_chaosnli_embeddings.sh
 ```
 
-By default, embeddings are produced with:
-
-- model: `roberta-base`
-- batch size: `64`
-- max length: `128`
-- storage dtype: `float16`
-
-The cache stores, for each split:
-
-- `{split}_ids.npy`
-- `{split}_embs.npy`
-
-for `split` in `train`, `validation`, `test`.
-
-When `EMB_DIR` is left at its default base name `out/chaosnli_emb`, the loader automatically scopes the effective cache directory by:
-
-- subset list,
-- split seed,
-- train/validation fractions,
-- embedding model,
-- embedding max length,
-- embedding storage dtype.
-
-This avoids silent collisions between incompatible embedding protocols.
-
-## Main launcher
-
-The main ChaosNLI launcher is:
+Run the train-section protocol sweep:
 
 ```bash
-./chaosnli.sh
+./chaosnli_protocol.sh
 ```
 
-Convenience wrappers are:
-
-```bash
-./chaosnli_snli.sh
-./chaosnli_mnli.sh
-./chaosnli_all.sh
-```
-
-Their defaults are:
-
-- `chaosnli_snli.sh`: `SOURCE_SUBSETS=snli`, `OUT_BASE=out/real_nlp/chaosnli_snli`
-- `chaosnli_mnli.sh`: `SOURCE_SUBSETS=mnli`, `OUT_BASE=out/real_nlp/chaosnli_mnli`
-- `chaosnli_all.sh`: `SOURCE_SUBSETS=snli,mnli`, `OUT_BASE=out/real_nlp/chaosnli_all`
-
-## What `chaosnli.sh` does
-
-For each requested validation-selection protocol in `SELECTION_SPLITS` and for each requested head in `HEADS`, `chaosnli.sh` performs the following stages.
-
-### 1. Hyperparameter search
-
-It calls:
-
-```bash
-scripts/chaosnli_hp_search.sh
-```
-
-which runs:
-
-```bash
-python3 experiment/chaosnli_cli.py hp-search ...
-```
-
-This stage:
-
-- loads the requested ChaosNLI subsets,
-- builds deterministic train/validation/test splits,
-- ensures embeddings are available,
-- evaluates learning-rate grids for Modes A, B, and C,
-- saves the selected learning rates.
-
-Outputs are written under:
-
-- `.../hp_search/<head>/hp-search.json`
-- `.../hp_search/<head>/selected_lrs.txt`
-
-### 2. Final runs
-
-For each run id in `RUN_IDS`, it calls:
-
-```bash
-scripts/chaosnli_run_final.sh
-```
-
-which runs:
-
-```bash
-python3 experiment/chaosnli_cli.py run ...
-```
-
-Each saved run writes:
-
-- one run JSON file,
-- `*_test_full_ids.npy`,
-- `*_test_full_y.npy`,
-- `*_test_full_probs_A.npy`,
-- `*_test_full_probs_B.npy`,
-- `*_test_full_probs_C.npy`
-
-when the corresponding modes are active.
-
-### 3. Post-hoc ambiguity and slice analysis
-
-After the final runs, `chaosnli.sh` calls:
-
-```bash
-scripts/chaosnli_posthoc.sh
-```
-
-This stage:
-
-- computes train-derived ambiguity thresholds,
-- evaluates every saved run on the ambiguity slices,
-- aggregates run-level JSON logs,
-- aggregates slice-level CSV outputs.
-
-Outputs are written under:
-
-- `.../ambiguity/`
-- `.../slice_eval/`
-- `.../aggregate/`
-
-## Validation-selection protocols
-
-The ChaosNLI pipeline uses three validation-selection protocols:
-
-- `val_full`
-- `val_S_amb`
-- `val_S_easy`
-
-Each validation-selection protocol has a paired test section:
-
-- `val_full  -> test_full`
-- `val_S_amb -> test_S_amb`
-- `val_S_easy -> test_S_easy`
-
-Saved run JSON files record both:
-
-- `selection_split`
-- `selection_test_split`
-
-## Train sections
-
-The data loader always keeps `train_full` available for protocol analysis. Model fitting may instead use one of:
-
-- `train_full`
-- `train_S_amb`
-- `train_S_easy`
-
-The train-section thresholds are derived from the full train split. The reference subset is the set of training items with a unique top vote if that subset is non-empty; otherwise the whole train split is used.
-
-## ChaosNLI smoke test
-
-A compact SNLI-only smoke test is:
+Smoke test (SNLI only, one run, one learning rate per mode):
 
 ```bash
 LR_GRID_A="1e-3" \
@@ -451,508 +212,120 @@ HP_SEEDS="0" \
 ./chaosnli_snli.sh
 ```
 
-This runs one hyperparameter-search seed, one run id, and one learning-rate candidate per mode.
+---
+
+## Notation correspondence
+
+The following table maps the main symbols used in the paper to their code counterparts.
+
+### Possibility distribution and KL-box
+
+| Paper | Code | CLI flag |
+|---|---|---|
+| $\pi$ | `pi` | — |
+| $\sigma$ (sorting permutation) | `sigma` | — |
+| $\tilde{\pi}$ (sorted possibility) | `tilde_pi` | — |
+| $\dot{p}$ (antipignistic probability) | `dot_p` | — |
+| $\dot{g}_r$ (adjacent gaps of $\dot{p}$) | `dot_g` | — |
+| $\underline{\delta}_r$ (lower gap) | `underline` | — |
+| $\overline{\delta}_r$ (upper gap) | `overline` | — |
+| $\rho_\pi$ (strict-positivity floor) | `pi_eps` | `--pi-eps` |
+| $\varepsilon_{\mathrm{cap}}$ (gap epsilon cap) | `eps_cap` | `--eps-cap` |
+| Tie-handling tolerance | `tie_tol` | `--tie-tol` |
+
+### Dykstra's algorithm
+
+| Paper | Code | CLI flag |
+|---|---|---|
+| $\tau$ (stopping tolerance) | `proj_tau` / `proj_tau_train` | `--proj-tau` |
+| $K_{\max}$ (maximum cycles) | `proj_K_train` / `proj_kmax` | `--proj-kmax` |
+| Log-domain clipping $\varepsilon$ | `log_clip_eps` | `--log-clip-eps` |
+
+### Synthetic benchmark (Experiment 2)
+
+| Paper | Code | CLI flag |
+|---|---|---|
+| $n$ (number of classes) | `n_classes` | `--n-classes` |
+| $d$ (feature dimension) | `d` | `--d` |
+| $\alpha$ (plausibility level) | `alpha` | `--alpha` |
+| $\beta$ (prototype scale) | `class_sep` | `--class-sep` |
+| $s$ (input noise) | `x_noise` | `--x-noise` |
+| $s_\alpha$ (annotation noise) | `alpha_noise` | `--alpha-noise` |
+| $\delta_\pi$ (stair step) | `pi_stair_step` | `--pi-stair-step` |
+| $N_{\mathrm{tr}}$ | `train` | `--train` |
+| $N_{\mathrm{te}}$ | `test` | `--test` |
+
+### ChaosNLI (Experiment 3)
+
+| Paper | Code | CLI flag |
+|---|---|---|
+| Source subsets | `source_subsets` | `--source-subsets` |
+| Split seed | `split_seed` | `--split-seed` |
+| Train fraction | `train_frac` | `--train-frac` |
+| Validation fraction | `val_frac` | `--val-frac` |
+| Fitted train section | `train_section` | `--train-section` |
+| Validation selection section | `selection_split` | `--selection-split` |
+| Embedding model | `embedding_model` | `--embedding-model` |
+| Model head | `head` | `--head` |
+| Active modes (A, B, C) | `active_modes` | `--active-modes` |
 
 ---
 
-## Running the higher-level train-section protocol
+## ChaosNLI data protocol
 
-The launcher
+### Splits
 
-```bash
-./chaosnli_protocol.sh
-```
+The loader downloads the ChaosNLI release archive, reads `chaosNLI_snli.jsonl` and/or `chaosNLI_mnli_m.jsonl`, and constructs deterministic train/validation/test splits stratified by majority-vote class. Items are ordered within each class by a stable hash of `(split_seed, uid)`. The default protocol uses `split_seed = 13`, `train_frac = 0.80`, `val_frac = 0.10`.
 
-runs several train sections under a shared output root.
+### Possibilistic annotation
 
-By default it sweeps:
+For each item with vote counts $v = (v_y)_{y \in \mathcal{Y}}$, the possibility distribution is:
 
-- `PRIMARY_HEADS="linear"`
-- `PRIMARY_TRAIN_SECTIONS="train_full train_S_amb train_S_easy"`
+$$\pi_y = \max\!\left(\frac{v_y}{v_{\max}},\, \rho_\pi\right),$$
 
-For each requested train section, it sets:
+where $v_{\max} = \max_y v_y$ and $\rho_\pi = 10^{-6}$. The admissible set $\mathcal{F}^{\mathrm{box}}(\pi)$ is then constructed with the gap parameters described in Section 5.4.2 of the paper, using $\varepsilon_{\mathrm{cap}} = 0.05$.
 
-- `TRAIN_SECTION=<that section>`
-- `OUT_BASE=<shared root>/<that section>`
+### Ambiguity slices
 
-and then calls `chaosnli.sh`.
-
-A typical custom call is:
-
-```bash
-PRIMARY_HEADS="linear mlp" \
-PRIMARY_TRAIN_SECTIONS="train_full train_S_amb train_S_easy" \
-OUT_ROOT="out/real_nlp/chaosnli_protocol_custom" \
-./chaosnli_protocol.sh
-```
+For each item, the peak vote proportion $p_{\max} = \max_y \bar{v}_y$ and the normalized entropy $H_{\mathrm{norm}} = -\sum_y \bar{v}_y \log \bar{v}_y / \log 3$ are computed. Fixed thresholds ($T_{\mathrm{low\text{-}peak}}$, $T_{\mathrm{high\text{-}peak}}$, $T_{\mathrm{low\text{-}H}}$, $T_{\mathrm{high\text{-}H}}$) are derived from the 30th and 70th percentiles of the unique-majority subset of the training split. The ambiguous subset $\mathcal{S}_{\mathrm{amb}}$ consists of unique-majority items with low peak and high entropy; the easy subset $\mathcal{S}_{\mathrm{easy}}$ consists of unique-majority items with high peak and low entropy.
 
 ---
 
-## Running the repository-wide workflow
+## Output artifacts
 
-The repository-wide workflow is driven by:
+The main generated artifacts are:
 
-```bash
-./FULL_REPRO.sh
-```
-
-This is the main reproducibility script for the current repository state.
-
-## What `FULL_REPRO.sh` does
-
-`FULL_REPRO.sh` executes seven stages.
-
-### Stage 1: cleanup
-
-It optionally runs:
-
-```bash
-python3 tools/cleanup_repo.py --root . --include-out --yes
-```
-
-Important: with the default settings, this removes regenerable artifacts including:
-
-- `.venv`
-- `build/`
-- compiled extension files
-- `data/chaosnli`
-- embedding-cache directories matching `out/chaosnli_emb*`
-- the whole `out/` directory
-
-Safety check: if `DO_CLEAN=1`, then `DO_INSTALL` must also be `1`.
-
-### Stage 2: environment setup and C++ build
-
-It creates `.venv` if needed, installs the Python dependencies, and builds the C++ extension.
-
-### Stage 3: ChaosNLI embedding precomputation
-
-It runs:
-
-```bash
-bash ./build_chaosnli_embeddings.sh
-```
-
-with the configured dataset, split, and embedding parameters.
-
-### Stage 4: ChaosNLI train-section sweep
-
-It runs:
-
-```bash
-bash ./chaosnli_protocol.sh
-```
-
-with the configured train-section sweep parameters.
-
-
-### Stage 5: ChaosNLI tables and protocol exports
-
-It builds:
-
-- per-protocol ChaosNLI results tables,
-- a merged article-facing train-section table,
-- a CSV summary of saved thresholds,
-- a compact export of ChaosNLI section sizes,
-- exported protocol artifacts.
-
-By default this stage writes into:
-
-- `out/real_nlp/chaosnli/train_section_sweep/article/`
-- `out/real_nlp/chaosnli/train_section_sweep/export_protocol/`
-- `out/real_nlp/chaosnli/article/`
-
-
-### Stage 6: synthetic top-k pipeline
-
-It runs:
-
-```bash
-bash ./run_topk.sh
-```
-
-### Stage 7: synthetic top-k summary table
-
-It runs:
-
-```bash
-python3 tools/build_topk_accuracy_summary_table.py ...
-```
-
-to build the final cross-configuration synthetic table.
-
-## Main `FULL_REPRO.sh` configuration variables
-
-The most important environment variables are:
-
-- cleanup/install:
-  - `DO_CLEAN`
-  - `DO_INSTALL`
-
-- ChaosNLI data/splits:
-  - `DATASET_URL`
-  - `DATA_ROOT`
-  - `EMB_DIR`
-  - `SOURCE_SUBSETS`
-  - `SPLIT_SEED`
-  - `TRAIN_FRAC`
-  - `VAL_FRAC`
-
-- ChaosNLI possibilistic construction:
-  - `PI_EPS`
-  - `TIE_TOL`
-  - `EPS_CAP`
-  - `MAX_TRAIN_SAMPLES`
-  - `TRAIN_SUBSET_SEED`
-  - `EVAL_APPLY_KEEP_FILTER`
-
-- embedding configuration:
-  - `EMBEDDING_MODEL`
-  - `EMBEDDING_BATCH_SIZE`
-  - `EMBEDDING_MAX_LENGTH`
-  - `EMBEDDING_STORAGE_DTYPE`
-
-- train-section sweep:
-  - `CHAOSNLI_OUT_BASE`
-  - `CHAOSNLI_TRAIN_SECTION_OUT_ROOT`
-  - `CHAOSNLI_TRAIN_SECTIONS`
-  - `CHAOSNLI_TRAIN_SECTION_HEADS`
-
-- synthetic pipeline:
-  - `TOPK_ROOT`
-  - `TOPK_TABLE_OUTDIR`
-
-## A reduced `FULL_REPRO.sh` example
-
-For a lighter run that keeps the existing environment and skips the synthetic benchmark:
-
-```bash
-DO_CLEAN=0 \
-DO_INSTALL=0 \
-DO_TOPK=0 \
-DO_TOPK_TABLES=0 \
-./FULL_REPRO.sh
-```
+- **Run logs** (JSON): per-run configuration, learning rates, and per-section metrics for all active modes.
+- **Saved predictions** (NumPy): test-set sample ids, labels, and probability matrices for each mode.
+- **Aggregated summaries** (CSV): means and standard deviations over repeated runs, grouped by experimental configuration.
+- **Article tables** (LaTeX): formatted tables corresponding to Tables 1–3 (Dykstra convergence), Table 5 (synthetic benchmark), and Table 6 (ChaosNLI) of the paper.
 
 ---
 
-## ChaosNLI data protocol details
+## `FULL_REPRO.sh` configuration
 
-## Raw data parsing
+The main environment variables are listed below. All have defaults matching the paper's experimental protocol.
 
-The raw ChaosNLI loader:
+| Variable | Default | Purpose |
+|---|---|---|
+| `DO_CLEAN` | `1` | Run cleanup before installation |
+| `DO_INSTALL` | `1` | Create venv and build C++ extension |
+| `DO_EMBEDDINGS` | `1` | Precompute ChaosNLI embeddings |
+| `DO_CHAOSNLI_TRAIN_SECTION_SWEEP` | `1` | Run the ChaosNLI train-section protocol |
+| `DO_CHAOSNLI_TRAIN_SECTION_TABLES` | `1` | Build ChaosNLI article tables |
+| `DO_CHAOSNLI_EXPORTS` | `1` | Export thresholds, slice sizes, protocol artifacts |
+| `DO_TOPK` | `1` | Run the synthetic benchmark |
+| `DO_TOPK_TABLES` | `1` | Build the synthetic summary table |
+| `SOURCE_SUBSETS` | `snli mnli` | ChaosNLI source subsets |
+| `SPLIT_SEED` | `13` | Deterministic split seed |
+| `TRAIN_FRAC` | `0.8` | Training fraction |
+| `VAL_FRAC` | `0.1` | Validation fraction |
+| `PI_EPS` | `1e-6` | Strict-positivity floor for $\pi$ |
+| `EPS_CAP` | `0.05` | Gap epsilon cap |
+| `EMBEDDING_MODEL` | `roberta-base` | Sentence encoder |
 
-- downloads and extracts the official archive if needed,
-- reads `chaosNLI_snli.jsonl` and/or `chaosNLI_mnli_m.jsonl`,
-- normalizes label names,
-- derives deterministic majority labels from vote counts when needed,
-- prefixes sample ids with the subset name, e.g. `snli::...` or `mnli::...`.
-
-This namespacing prevents id collisions when multiple subsets are loaded together.
-
-## Split construction
-
-The split builder creates deterministic train/validation/test splits by:
-
-- stratifying on the majority-vote class,
-- ordering items within each class by a stable hash of `(split_seed, uid)`,
-- taking floor-based train and validation counts per class,
-- assigning the remainder to test.
-
-The default FULL_REPRO protocol uses `SPLIT_SEED=13`, `TRAIN_FRAC=0.80`, and `VAL_FRAC=0.10`.
-
-## Vote-derived fields
-
-For each processed ChaosNLI item, the loader computes:
-
-- `y`
-- `plausible_mask`
-- `top_votes`
-- `second_votes`
-- `top_margin`
-- `pi`
-- `sigma`
-- `tilde_pi`
-- `underline`
-- `overline`
-- `dot_p`
-- `vote_p`
-
-These are then attached to cached embeddings to produce compact training samples.
-
-## Evaluation keep-filter
-
-Training always applies the keep filter.
-
-Validation and test apply it only when:
+A reduced run that skips the synthetic benchmark:
 
 ```bash
---eval-apply-keep-filter
+DO_CLEAN=0 DO_INSTALL=0 DO_TOPK=0 DO_TOPK_TABLES=0 ./FULL_REPRO.sh
 ```
-
-or equivalently
-
-```bash
-EVAL_APPLY_KEEP_FILTER=1
-```
-
-is enabled.
-
----
-
-## Variable mapping (paper notation to code)
-
-This section keeps the paper-to-code correspondence explicit.
-
-## Synthetic benchmark
-
-### Problem size
-
-- paper `$n$` (number of classes) ↔ code `n_classes`  
-  CLI flag: `--n-classes`
-
-- paper `$d$` (feature dimension) ↔ code `d`  
-  CLI flag: `--d`
-
-### Data geometry and noise
-
-- paper `$\beta$` (prototype scale) ↔ code `class_sep`  
-  CLI flag: `--class-sep`
-
-- paper input noise scale ↔ code `x_noise`  
-  CLI flag: `--x-noise`
-
-- noise in $\alpha(x)$ ↔ code `alpha_noise`  
-  CLI flag: `--alpha-noise`
-
-### Possibility construction
-
-- paper `$\alpha$` ↔ code `alpha`  
-  CLI flag: `--alpha`
-
-- strict positivity floor for $\pi$ ↔ code `pi_eps`  
-  CLI flag: `--pi-eps`
-
-- stair-step decrement ↔ code `pi_stair_step`  
-  CLI flag: `--pi-stair-step`
-
-- number of explicit stair levels ↔ code `pi_stair_m`  
-  CLI flag: `--pi-stair-m`
-
-### KL-box construction
-
-- paper `$\varepsilon_{\mathrm{cap}}$` ↔ code `eps_cap`  
-  CLI flag: `--eps-cap`
-
-- tie-handling tolerance ↔ code `tie_tol`  
-  CLI flag: `--tie-tol`
-
-### Projection and numerics
-
-- Dykstra stopping tolerance ↔ code `proj_tau_train`  
-  CLI flags: `--proj-tau-train`, `--proj-tau`
-
-- maximum Dykstra cycles ↔ code `proj_K_train`  
-  CLI flags: `--proj-K-train`, `--proj-kmax`
-
-- log-domain clipping constant ↔ code `log_clip_eps`  
-  CLI flag: `--log-clip-eps`
-
-### Training
-
-- weight decay ↔ code `weight_decay`  
-  CLI flag: `--weight-decay`
-
-- epochs ↔ code `epochs`  
-  CLI flag: `--epochs`
-
-- batch size ↔ code `batch`  
-  CLI flag: `--batch`
-
-- learning rates ↔ code `lr_A`, `lr_B`
-
-## ChaosNLI pipeline
-
-### Data protocol
-
-- source subsets ↔ code `source_subsets`  
-  CLI flag: `--source-subsets`
-
-- split seed ↔ code `split_seed`  
-  CLI flag: `--split-seed`
-
-- train fraction ↔ code `train_frac`  
-  CLI flag: `--train-frac`
-
-- validation fraction ↔ code `val_frac`  
-  CLI flag: `--val-frac`
-
-- fitted train section ↔ code `train_section`  
-  CLI flag: `--train-section`
-
-- optional train subsampling ↔ code `max_train_samples`  
-  CLI flag: `--max-train-samples`
-
-- train subsampling seed ↔ code `train_subset_seed`  
-  CLI flag: `--train-subset-seed`
-
-### Embeddings
-
-- encoder model ↔ code `embedding_model`  
-  CLI flag: `--embedding-model`
-
-- embedding batch size ↔ code `embedding_batch_size`  
-  CLI flag: `--embedding-batch-size`
-
-- maximum token length ↔ code `embedding_max_length`  
-  CLI flag: `--embedding-max-length`
-
-- cache storage dtype ↔ code `embedding_storage_dtype`  
-  CLI flag: `--embedding-storage-dtype`
-
-### Selection protocol
-
-- validation section used for model selection ↔ code `selection_split`  
-  CLI flag: `--selection-split`
-
-- paired test section ↔ saved as `selection_test_split` in run outputs
-
-### Possibilistic construction
-
-- strict positivity floor ↔ code `pi_eps`  
-  CLI flag: `--pi-eps`
-
-- tie-handling tolerance ↔ code `tie_tol`  
-  CLI flag: `--tie-tol`
-
-- upper cap for wide gap constraints ↔ code `eps_cap`  
-  CLI flag: `--eps-cap`
-
-### Projection and training
-
-- Dykstra stopping tolerance ↔ code `proj_tau`  
-  CLI flag: `--proj-tau`
-
-- maximum Dykstra cycles ↔ code `proj_kmax`  
-  CLI flag: `--proj-kmax`
-
-- log clipping ↔ code `log_clip_eps`  
-  CLI flag: `--log-clip-eps`
-
-- model head ↔ code `head`  
-  CLI flag: `--head`
-
-- MLP hidden dimension ↔ code `mlp_hidden_dim`  
-  CLI flag: `--mlp-hidden-dim`
-
-- MLP dropout ↔ code `mlp_dropout`  
-  CLI flag: `--mlp-dropout`
-
-- active modes ↔ code `active_modes`  
-  CLI flag: `--active-modes`
-
-- learning rates ↔ code `lr_A`, `lr_B`, `lr_C`
-
----
-
-## Useful checks
-
-## Embedding-directory canonicalization
-
-The embedding directory is canonicalized with respect to subset order. This should print the same directory twice:
-
-```bash
-python3 - <<'PY'
-from nlpbench.chaosnli.loader import resolve_embedding_dir
-
-a = resolve_embedding_dir(
-    "out/chaosnli_emb",
-    source_subsets=["snli", "mnli"],
-    split_seed=13,
-    train_frac=0.8,
-    val_frac=0.1,
-    embedding_model="roberta-base",
-    embedding_max_length=128,
-    embedding_storage_dtype="float16",
-)
-
-b = resolve_embedding_dir(
-    "out/chaosnli_emb",
-    source_subsets=["mnli", "snli"],
-    split_seed=13,
-    train_frac=0.8,
-    val_frac=0.1,
-    embedding_model="roberta-base",
-    embedding_max_length=128,
-    embedding_storage_dtype="float16",
-)
-
-print(a)
-print(b)
-assert a == b
-print("OK")
-PY
-```
-
-## Parsing subset specifications
-
-The subset parser accepts both comma-separated and space-separated forms:
-
-```bash
-python3 - <<'PY'
-from nlpbench.chaosnli.raw import parse_source_subsets
-
-print(parse_source_subsets("snli,mnli"))
-print(parse_source_subsets("mnli snli"))
-print(parse_source_subsets(["snli", "mnli"]))
-PY
-```
-
-## Cleanup dry run
-
-Before using the destructive cleanup in `FULL_REPRO.sh`, you can inspect what would be removed:
-
-```bash
-python3 tools/cleanup_repo.py --root . --include-out
-```
-
----
-
-## Outputs
-
-Across the repository, the main generated artifacts are:
-
-- JSON logs for single runs,
-- NumPy arrays for saved test predictions,
-- CSV summary files,
-- LaTeX tables.
-
-### ChaosNLI protocol export artifacts
-
-`tools/export_chaosnli_protocol.py` writes:
-
-- `chaosnli_split_manifest.csv`
-- `chaosnli_split_manifest.jsonl`
-- `chaosnli_thresholds.json`
-- `chaosnli_slice_membership.csv`
-- `chaosnli_slice_membership.jsonl`
-- `chaosnli_protocol_metadata.json`
-
-### Train-section and article artifacts
-
-`FULL_REPRO.sh` stage 5 writes, by default:
-
-- `out/real_nlp/chaosnli/train_section_sweep/article/chaosnli_train_section_val_full.tex`
-- `out/real_nlp/chaosnli/train_section_sweep/article/chaosnli_train_section_val_S_amb.tex`
-- `out/real_nlp/chaosnli/train_section_sweep/article/chaosnli_train_section_val_S_easy.tex`
-- `out/real_nlp/chaosnli/train_section_sweep/article/chaosnli_train_section_article_table.tex`
-- `out/real_nlp/chaosnli/train_section_sweep/article/chaosnli_train_section_article_rows.csv`
-- `out/real_nlp/chaosnli/train_section_sweep/article/chaosnli_thresholds_summary.csv`
-- `out/real_nlp/chaosnli/article/chaosnli_slice_sizes.tex`
-- `out/real_nlp/chaosnli/article/chaosnli_slice_sizes.csv`
-
-### Synthetic article artifact
-
-The final synthetic summary table is written to:
-
-- `out/big_tables/big_all_test_acc_topk.tex`

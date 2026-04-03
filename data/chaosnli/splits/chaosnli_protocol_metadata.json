@@ -1,0 +1,92 @@
+{
+  "effective_train_size": 2489,
+  "emb_dir": "out/chaosnli_emb_mnli+snli_seed13_tr0p8_va0p1_encroberta-base_mx128_dtfloat16",
+  "full_train_size_before_subsample": 2489,
+  "kept_counts": {
+    "test": 314,
+    "train": 2489,
+    "validation": 310
+  },
+  "label_names": [
+    "entailment",
+    "neutral",
+    "contradiction"
+  ],
+  "raw_counts": {
+    "test": 314,
+    "train": 2489,
+    "validation": 310
+  },
+  "requested_train_size": 0,
+  "source_subsets": [
+    "snli",
+    "mnli"
+  ],
+  "split_seed": 13,
+  "threshold_reference": {
+    "n_reference": 2466,
+    "reference_subset": "unique_majority",
+    "split": "train_full"
+  },
+  "train_frac": 0.8,
+  "train_section": "train_full",
+  "train_section_size_before_subsample": 2489,
+  "train_section_sizes": {
+    "train_S_amb": 511,
+    "train_S_easy": 702,
+    "train_full": 2489
+  },
+  "train_section_thresholds": {
+    "Hnorm_deciles": [
+      0.29590327428938457,
+      0.4149655139758603,
+      0.5029021704061216,
+      0.5752962114843869,
+      0.6193741501883927,
+      0.6591115256308064,
+      0.7035807318062536,
+      0.7561862543109807,
+      0.8448948245712834
+    ],
+    "Hnorm_quantiles": {
+      "q00": 0.0,
+      "q10": 0.29590327428938457,
+      "q100": 0.9988052782817544,
+      "q25": 0.4642348715761745,
+      "q50": 0.6193741501883927,
+      "q70": 0.7035807318062536,
+      "q75": 0.7309629290050981,
+      "q90": 0.8448948245712834
+    },
+    "T_high_H": 0.7035807318062536,
+    "T_high_peak": 0.8,
+    "T_low_H": 0.5029021704061216,
+    "T_low_peak": 0.6,
+    "n_reference": 2466,
+    "peak_deciles": [
+      0.51,
+      0.55,
+      0.6,
+      0.65,
+      0.69,
+      0.75,
+      0.8,
+      0.85,
+      0.91
+    ],
+    "peak_quantiles": {
+      "q00": 0.35,
+      "q10": 0.51,
+      "q100": 1.0,
+      "q25": 0.58,
+      "q50": 0.69,
+      "q70": 0.8,
+      "q75": 0.83,
+      "q90": 0.91
+    },
+    "reference_split": "train_full",
+    "reference_subset": "unique_majority"
+  },
+  "train_subset_seed": 42,
+  "val_frac": 0.1
+}
