@@ -39,7 +39,7 @@ Given a strictly positive probability vector $q \in \Delta_n$ produced by a clas
 
 $$p^\star = \arg\min_{p \in \mathcal{F}^{\mathrm{box}}(\pi)} D_{\mathrm{KL}}(p \| q).$$
 
-The projection is obtained iteratively by Dykstra's algorithm with Bregman projections associated with the negative entropy. Explicit closed-form projections onto each constraint set (prefix-sum constraints, lower-gap constraints, upper-gap constraints) are derived in the paper and implemented here.
+The projection is obtained iteratively by Dykstra's algorithm with Bregman projections associated with the negative entropy. Explicit closed-form projections onto each constraint set (dominance constraints, shape constraints) are derived in the paper and implemented here.
 
 The projection $p^\star$ serves as a training target: the per-instance loss is $\ell(\theta; x, \pi) = D_{\mathrm{KL}}(p^\star \| q_\theta(x))$, which quantifies the smallest KL adjustment of $q_\theta(x)$ needed to satisfy the constraints induced by $\pi$.
 
