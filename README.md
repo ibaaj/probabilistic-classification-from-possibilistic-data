@@ -29,19 +29,21 @@ This project is licensed under the [Apache License 2.0](LICENSE).
 
 ## Overview
 
-Given a finite set of classes $\mathcal{Y}$ and a normalized possibility distribution $\pi$ on $\mathcal{Y}$, we construct a non-empty closed convex set $\mathcal{F}^{\mathrm{box}}(\pi) \subseteq \Delta_n$ of admissible probability distributions by combining two requirements:
+Given a finite set of classes $\mathcal{Y}$ and a normalized possibility distribution $\pi$ on $\mathcal{Y}$, we construct a non-empty closed convex set $\mathcal{F}^{\text{box}}(\pi) \subseteq \Delta_{n}$ of admissible probability distributions by combining two requirements:
 
 1. **Dominance constraints.** For every event $A \subseteq Y$, the probability measure $P$ satisfies $N(A) \le P(A) \le \Pi(A)$, where $\Pi$ and $N$ are the possibility and necessity measures induced by $\pi$.
 
-2. **Shape constraints.** The qualitative ordering of $\pi$ is preserved: $\pi_k \ge \pi_{k'} \Longleftrightarrow p_k \ge p_{k'}$ for all classes $k, k'$.
+2. **Shape constraints.** The qualitative ordering of $\pi$ is preserved: $\pi\_{k} \ge \pi\_{k'} \Longleftrightarrow p\_{k} \ge p\_{k'}$ for all classes $k, k'$.
 
-Given a strictly positive probability vector $q \in \Delta_n$ produced by a classifier, we compute its Kullback–Leibler projection onto $\mathcal{F}^{\mathrm{box}}(\pi)$:
+Given a strictly positive probability vector $q \in \Delta_{n}$ produced by a classifier, we compute its Kullback–Leibler projection onto $\mathcal{F}^{\text{box}}(\pi)$:
 
-$$p^\star = \arg\min_{p \in \mathcal{F}^{\mathrm{box}}(\pi)} D_{\mathrm{KL}}(p \| q).$$
+$$
+p^{\star} = \arg\min\_{p \in \mathcal{F}^{\text{box}}(\pi)} D\_{\text{KL}}(p \Vert q).
+$$
 
 The projection is obtained iteratively by Dykstra's algorithm with Bregman projections associated with the negative entropy. Explicit closed-form projections onto each constraint set (dominance constraints, shape constraints) are derived in the paper and implemented here.
 
-The projection $p^\star$ serves as a training target: the per-instance loss is $\ell(\theta; x, \pi) = D_{\mathrm{KL}}(p^\star \| q_\theta(x))$, which quantifies the smallest KL adjustment of $q_\theta(x)$ needed to satisfy the constraints induced by $\pi$.
+The projection $p^{\star}$ serves as a training target: the per-instance loss is $\ell(\theta; x, \pi) = D\_{\text{KL}}(p^{\star} \Vert q\_{\theta}(x))$, which quantifies the smallest KL adjustment of $q\_{\theta}(x)$ needed to satisfy the constraints induced by $\pi$.
 
 ---
 
@@ -51,26 +53,26 @@ The repository implements three experiments from the paper.
 
 ### Experiment 1: Empirical evaluation of Dykstra's algorithm (Section 5.2)
 
-Empirical evaluation of Dykstra's algorithm on synthetic instances with $n = 100$ classes. For each of 100 random runs, a strictly positive possibility distribution $\pi$ and a reference probability vector $q$ are drawn at random. The algorithm is run for several tolerance levels $\tau \in \{10^{-2}, 10^{-3}, 10^{-4}, 10^{-6}, 10^{-8}\}$ and cycle budgets $K_{\max} \in \{10^3, 10^4, 5 \cdot 10^4\}$. The convergence rate, cycle count, final constraint violation, and computation time are recorded.
+Empirical evaluation of Dykstra's algorithm on synthetic instances with $n = 100$ classes. For each of 100 random runs, a strictly positive possibility distribution $\pi$ and a reference probability vector $q$ are drawn at random. The algorithm is run for several tolerance levels $\tau \in \\{10^{-2}, 10^{-3}, 10^{-4}, 10^{-6}, 10^{-8}\\}$ and cycle budgets $K\_{\max} \in \\{10^{3}, 10^{4}, 5 \cdot 10^{4}\\}$. The convergence rate, cycle count, final constraint violation, and computation time are recorded.
 
 ### Experiment 2: Synthetic learning with possibilistic supervision (Section 5.3)
 
-A controlled multi-class classification setting with $n = 20$ classes, where each training instance is a pair $(x, \pi)$ with $x \in \mathbb{R}^d$ a feature vector and $\pi$ a possibility distribution on $\mathcal{Y}$. Two models are compared:
+A controlled multi-class classification setting with $n = 20$ classes, where each training instance is a pair $(x, \pi)$ with $x \in \mathbb{R}^{d}$ a feature vector and $\pi$ a possibility distribution on $\mathcal{Y}$. Two models are compared:
 
-- **Model A (projection target):** the target is $p^\star(x, \pi) = \arg\min_{p \in \mathcal{F}^{\mathrm{box}}(\pi)} D_{\mathrm{KL}}(p \| q^A(x))$, recomputed from the current prediction at each training step.
-- **Model B (fixed target):** the target is the antipignistic probability $\dot{p}(\pi) \in \Delta_n$ obtained from $\pi$ by the reverse mapping of Section 2.2 of the paper.
+- **Model A (projection target):** the target is $p^{\star}(x, \pi) = \arg\min\_{p \in \mathcal{F}^{\text{box}}(\pi)} D\_{\text{KL}}(p \Vert q^{A}(x))$, recomputed from the current prediction at each training step.
+- **Model B (fixed target):** the target is the antipignistic probability $\dot{p}(\pi) \in \Delta_{n}$ obtained from $\pi$ by the reverse mapping of Section 2.2 of the paper.
 
-The comparison varies over feature dimensions $d \in \{30, 80, 150\}$, training-set sizes $N_{\mathrm{tr}} \in \{200, 500, 1000\}$, and ambiguity levels $\alpha \in \{0.4, 0.6, 0.8, 0.95\}$.
+The comparison varies over feature dimensions $d \in \\{30, 80, 150\\}$, training-set sizes $N\_{\text{tr}} \in \\{200, 500, 1000\\}$, and ambiguity levels $\alpha \in \\{0.4, 0.6, 0.8, 0.95\\}$.
 
 ### Experiment 3: ChaosNLI (Section 5.4)
 
 A natural language inference task based on the ChaosNLI dataset (Nie et al., 2020), which provides multiply-annotated examples from SNLI and MultiNLI with $n = 3$ classes (entailment, neutral, contradiction). Three training objectives are compared:
 
-- **Model A (projection target):** KL projection of the current prediction onto $\mathcal{F}^{\mathrm{box}}(\pi)$, where $\pi$ is derived from annotator vote counts.
+- **Model A (projection target):** KL projection of the current prediction onto $\mathcal{F}^{\text{box}}(\pi)$, where $\pi$ is derived from annotator vote counts.
 - **Model B (antipignistic target):** the fixed probability $\dot{p}(\pi)$ derived from the possibility distribution.
 - **Model C (vote-proportion target):** the normalized vote proportions $\bar{v}$ used directly as a soft target.
 
-The comparison includes training on the full split, on an ambiguity-focused subset ($\mathcal{S}_{\mathrm{amb}}$), and on an easy subset ($\mathcal{S}_{\mathrm{easy}}$), with model selection on three validation sections and final evaluation on three test sections.
+The comparison includes training on the full split, on an ambiguity-focused subset ( $\mathcal{S}\_{\text{amb}}$ ), and on an easy subset ( $\mathcal{S}\_{\text{easy}}$ ), with model selection on three validation sections and final evaluation on three test sections.
 
 ---
 
@@ -171,7 +173,7 @@ python3 synthetic_cli.py dykstra-sweep \
 ./run_topk.sh
 ```
 
-Default grid: $d \in \{30, 80, 150\}$, $N_{\mathrm{tr}} \in \{200, 500, 1000\}$, $\alpha \in \{0.4, 0.6, 0.8, 0.95\}$, 10 runs per configuration. The class-separation parameter $\beta$ is set as a function of $d$: $\beta = 1.5$ for $d = 30$, $\beta = 0.9$ for $d = 80$, $\beta = 0.6$ for $d = 150$.
+Default grid: $d \in \\{30, 80, 150\\}$, $N\_{\text{tr}} \in \\{200, 500, 1000\\}$, $\alpha \in \\{0.4, 0.6, 0.8, 0.95\\}$, 10 runs per configuration. The class-separation parameter $\beta$ is set as a function of $d$: &ensp; $\beta = 1.5$ for $d = 30$, &ensp; $\beta = 0.9$ for $d = 80$, &ensp; $\beta = 0.6$ for $d = 150$.
 
 Smoke test (one configuration, one run):
 
@@ -226,11 +228,11 @@ The following table maps the main symbols used in the paper to their code counte
 | $\sigma$ (sorting permutation) | `sigma` | — |
 | $\tilde{\pi}$ (sorted possibility) | `tilde_pi` | — |
 | $\dot{p}$ (antipignistic probability) | `dot_p` | — |
-| $\dot{g}_r$ (adjacent gaps of $\dot{p}$) | `dot_g` | — |
-| $\underline{\delta}_r$ (lower gap) | `underline` | — |
-| $\overline{\delta}_r$ (upper gap) | `overline` | — |
-| $\rho_\pi$ (strict-positivity floor) | `pi_eps` | `--pi-eps` |
-| $\varepsilon_{\mathrm{cap}}$ (gap epsilon cap) | `eps_cap` | `--eps-cap` |
+| $\dot{g}\_{r}$ (adjacent gaps of $\dot{p}$) | `dot_g` | — |
+| $\underline{\delta}\_{r}$ (lower gap) | `underline` | — |
+| $\overline{\delta}\_{r}$ (upper gap) | `overline` | — |
+| $\rho\_{\pi}$ (strict-positivity floor) | `pi_eps` | `--pi-eps` |
+| $\varepsilon\_{\text{cap}}$ (gap epsilon cap) | `eps_cap` | `--eps-cap` |
 | Tie-handling tolerance | `tie_tol` | `--tie-tol` |
 
 ### Dykstra's algorithm
@@ -238,7 +240,7 @@ The following table maps the main symbols used in the paper to their code counte
 | Paper | Code | CLI flag |
 |---|---|---|
 | $\tau$ (stopping tolerance) | `proj_tau` / `proj_tau_train` | `--proj-tau` |
-| $K_{\max}$ (maximum cycles) | `proj_K_train` / `proj_kmax` | `--proj-kmax` |
+| $K\_{\max}$ (maximum cycles) | `proj_K_train` / `proj_kmax` | `--proj-kmax` |
 | Log-domain clipping $\varepsilon$ | `log_clip_eps` | `--log-clip-eps` |
 
 ### Synthetic benchmark (Experiment 2)
@@ -250,10 +252,10 @@ The following table maps the main symbols used in the paper to their code counte
 | $\alpha$ (plausibility level) | `alpha` | `--alpha` |
 | $\beta$ (prototype scale) | `class_sep` | `--class-sep` |
 | $s$ (input noise) | `x_noise` | `--x-noise` |
-| $s_\alpha$ (annotation noise) | `alpha_noise` | `--alpha-noise` |
-| $\delta_\pi$ (stair step) | `pi_stair_step` | `--pi-stair-step` |
-| $N_{\mathrm{tr}}$ | `train` | `--train` |
-| $N_{\mathrm{te}}$ | `test` | `--test` |
+| $s\_{\alpha}$ (annotation noise) | `alpha_noise` | `--alpha-noise` |
+| $\delta\_{\pi}$ (stair step) | `pi_stair_step` | `--pi-stair-step` |
+| $N\_{\text{tr}}$ | `train` | `--train` |
+| $N\_{\text{te}}$ | `test` | `--test` |
 
 ### ChaosNLI (Experiment 3)
 
@@ -279,15 +281,17 @@ The loader downloads the ChaosNLI release archive, reads `chaosNLI_snli.jsonl` a
 
 ### Possibilistic annotation
 
-For each item with vote counts $v = (v_y)_{y \in \mathcal{Y}}$, the possibility distribution is:
+For each item with vote counts $v = (v\_{y})\_{y \in \mathcal{Y}}$, the possibility distribution is:
 
-$$\pi_y = \max\!\left(\frac{v_y}{v_{\max}},\, \rho_\pi\right),$$
+$$
+\pi\_{y} = \max\!\left(\frac{v\_{y}}{v\_{\max}},\; \rho\_{\pi}\right),
+$$
 
-where $v_{\max} = \max_y v_y$ and $\rho_\pi = 10^{-6}$. The admissible set $\mathcal{F}^{\mathrm{box}}(\pi)$ is then constructed with the gap parameters described in Section 5.4.2 of the paper, using $\varepsilon_{\mathrm{cap}} = 0.05$.
+where $v\_{\max} = \max\_{y} v\_{y}$ and $\rho\_{\pi} = 10^{-6}$. The admissible set $\mathcal{F}^{\text{box}}(\pi)$ is then constructed with the gap parameters described in Section 5.4.2 of the paper, using $\varepsilon\_{\text{cap}} = 0.05$.
 
 ### Ambiguity slices
 
-For each item, the peak vote proportion $p_{\max} = {\max}_{y} \bar{v}_{y}$ and the normalized entropy $H_{\mathrm{norm}} = -\sum_y \bar{v}_{y} \log \bar{v}_{y} / \log 3$ are computed. Fixed thresholds ($T_{\mathrm{low\text{-}peak}}$, $T_{\mathrm{high\text{-}peak}}$, $T_{\mathrm{low\text{-}H}}$, $T_{\mathrm{high\text{-}H}}$) are derived from the 30th and 70th percentiles of the unique-majority subset of the training split. The ambiguous subset $\mathcal{S}_{\mathrm{amb}}$ consists of unique-majority items with low peak and high entropy; the easy subset $\mathcal{S}_{\mathrm{easy}}$ consists of unique-majority items with high peak and low entropy.
+For each item, the peak vote proportion $p\_{\max} = \max\_{y} \bar{v}\_{y}$ and the normalized entropy $H\_{\text{norm}} = -\sum\_{y} \bar{v}\_{y} \log \bar{v}\_{y} \mathbin{/} \log 3$ are computed. Fixed thresholds ( $T\_{\text{low-peak}}$, $T\_{\text{high-peak}}$, $T\_{\text{low-H}}$, $T\_{\text{high-H}}$ ) are derived from the 30th and 70th percentiles of the unique-majority subset of the training split. The ambiguous subset $\mathcal{S}\_{\text{amb}}$ consists of unique-majority items with low peak and high entropy; the easy subset $\mathcal{S}\_{\text{easy}}$ consists of unique-majority items with high peak and low entropy.
 
 ---
 
