@@ -49,7 +49,7 @@ The projection $p^\star$ serves as a training target: the per-instance loss is $
 
 The repository implements three experiments from the paper.
 
-### Experiment 1: Convergence of the projection algorithm (Section 5.2)
+### Experiment 1: Empirical evaluation of Dykstra's algorithm (Section 5.2)
 
 Empirical evaluation of Dykstra's algorithm on synthetic instances with $n = 100$ classes. For each of 100 random runs, a strictly positive possibility distribution $\pi$ and a reference probability vector $q$ are drawn at random. The algorithm is run for several tolerance levels $\tau \in \{10^{-2}, 10^{-3}, 10^{-4}, 10^{-6}, 10^{-8}\}$ and cycle budgets $K_{\max} \in \{10^3, 10^4, 5 \cdot 10^4\}$. The convergence rate, cycle count, final constraint violation, and computation time are recorded.
 
@@ -107,7 +107,7 @@ The comparison includes training on the full split, on an ambiguity-focused subs
 | `tools/export_chaosnli_protocol.py` | Exports split manifests, slice memberships, thresholds, and protocol metadata. |
 | `tools/extract_chaosnli_thresholds.py` | Collects saved thresholds into a compact summary table. |
 | `tools/aggregate_topk_runs.py` | Aggregates repeated synthetic runs and writes CSV/LaTeX summaries. |
-| `tools/build_topk_accuracy_summary_table.py` | Builds the article-facing synthetic accuracy table (Table 5 of the paper). |
+| `tools/build_topk_accuracy_summary_table.py` | Builds the synthetic accuracy table (Table 5 of the paper). |
 
 ---
 
@@ -156,7 +156,7 @@ This executes all stages: environment setup, C++ build, ChaosNLI embedding preco
 
 ### Experiment 1 only (Dykstra convergence evaluation)
 
-The convergence sweep is included at the end of `run_topk.sh`. A standalone invocation is:
+The convergence sweep is included at the end of `run_topk.sh`. A standalone run is:
 
 ```bash
 python3 synthetic_cli.py dykstra-sweep \
@@ -298,7 +298,7 @@ The main generated artifacts are:
 - **Run logs** (JSON): per-run configuration, learning rates, and per-section metrics for all active modes.
 - **Saved predictions** (NumPy): test-set sample ids, labels, and probability matrices for each mode.
 - **Aggregated summaries** (CSV): means and standard deviations over repeated runs, grouped by experimental configuration.
-- **Article tables** (LaTeX): formatted tables corresponding to Tables 1–3 (Dykstra convergence), Table 5 (synthetic benchmark), and Table 6 (ChaosNLI) of the paper.
+- **LaTeX tables**: formatted tables corresponding to Tables 1–3 (Dykstra convergence), Table 5 (synthetic benchmark), and Table 6 (ChaosNLI) of the paper.
 
 ---
 
