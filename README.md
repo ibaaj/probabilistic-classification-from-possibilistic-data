@@ -19,11 +19,7 @@ This repository contains the code for the experiments reported in the following 
 
 ---
 
-## License
 
-This project is licensed under the [Apache License 2.0](LICENSE).
-
----
 
 ## Overview
 
@@ -102,7 +98,7 @@ The comparison includes training on the full split, on an ambiguity-focused subs
 | Script | Purpose |
 |---|---|
 | `tools/build_chaosnli_results_table.py` | Builds per-protocol ChaosNLI summary tables from saved run JSONs. |
-| `tools/chaosnli_train_section_article_table.py` | Merges per-protocol CSVs into one article-facing train-section table. |
+| `tools/chaosnli_train_section_article_table.py` | Merges per-protocol CSVs into one table. |
 | `tools/chaosnli_slice_sizes.py` | Exports train/validation/test section sizes with optional LaTeX output. |
 | `tools/export_chaosnli_protocol.py` | Exports split manifests, slice memberships, thresholds, and protocol metadata. |
 | `tools/extract_chaosnli_thresholds.py` | Collects saved thresholds into a compact summary table. |
@@ -282,7 +278,7 @@ The loader downloads the ChaosNLI release archive, reads `chaosNLI_snli.jsonl` a
 For each item with vote counts $v = (v\_{y})\_{y \in \mathcal{Y}}$, the possibility distribution is:
 
 $$
-\pi\_{y} = \max\!\left(\frac{v\_{y}}{v\_{\max}},\; \rho\_{\pi}\right),
+\pi\_{y} = \max\!\left(\frac{v\_{y}}{v\_{\max}}, \rho\_{\pi}\right),
 $$
 
 where $v\_{\max} = \max\_{y} v\_{y}$ and $\rho\_{\pi} = 10^{-6}$. The admissible set $\mathcal{F}^{\text{box}}(\pi)$ is then constructed with the gap parameters described in Section 5.4.2 of the paper, using $\varepsilon\_{\text{cap}} = 0.05$.
@@ -331,3 +327,10 @@ A reduced run that skips the synthetic benchmark:
 ```bash
 DO_CLEAN=0 DO_INSTALL=0 DO_TOPK=0 DO_TOPK_TABLES=0 ./FULL_REPRO.sh
 ```
+
+---
+
+## License
+
+This project is licensed under the [Apache License 2.0](LICENSE).
+
