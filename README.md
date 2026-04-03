@@ -2,9 +2,7 @@
 
 This repository contains the code for the experiments reported in the following paper:
 
-> **Probabilistic classification from possibilistic data: computing Kullback–Leibler projection with a possibility distribution**
-> Ismaïl Baaj and Pierre Marquis
-> [arXiv:2604.01939](https://arxiv.org/abs/2604.01939)
+> Ismaïl Baaj and Pierre Marquis. **Probabilistic classification from possibilistic data: computing Kullback–Leibler projection with a possibility distribution** [arXiv:2604.01939](https://arxiv.org/abs/2604.01939)
 
 ```bibtex
 @misc{baaj2026probabilistic,
