@@ -287,7 +287,7 @@ where $v_{\max} = \max_y v_y$ and $\rho_\pi = 10^{-6}$. The admissible set $\mat
 
 ### Ambiguity slices
 
-For each item, the peak vote proportion $p_{\max} = \max_y \bar{v}_y$ and the normalized entropy $H_{\mathrm{norm}} = -\sum_y \bar{v}_y \log \bar{v}_y / \log 3$ are computed. Fixed thresholds ($T_{\mathrm{low\text{-}peak}}$, $T_{\mathrm{high\text{-}peak}}$, $T_{\mathrm{low\text{-}H}}$, $T_{\mathrm{high\text{-}H}}$) are derived from the 30th and 70th percentiles of the unique-majority subset of the training split. The ambiguous subset $\mathcal{S}_{\mathrm{amb}}$ consists of unique-majority items with low peak and high entropy; the easy subset $\mathcal{S}_{\mathrm{easy}}$ consists of unique-majority items with high peak and low entropy.
+For each item, the peak vote proportion $p_{\max} = {\max}_{y} \bar{v}_{y}$ and the normalized entropy $H_{\mathrm{norm}} = -\sum_y \bar{v}_{y} \log \bar{v}_{y} / \log 3$ are computed. Fixed thresholds ($T_{\mathrm{low\text{-}peak}}$, $T_{\mathrm{high\text{-}peak}}$, $T_{\mathrm{low\text{-}H}}$, $T_{\mathrm{high\text{-}H}}$) are derived from the 30th and 70th percentiles of the unique-majority subset of the training split. The ambiguous subset $\mathcal{S}_{\mathrm{amb}}$ consists of unique-majority items with low peak and high entropy; the easy subset $\mathcal{S}_{\mathrm{easy}}$ consists of unique-majority items with high peak and low entropy.
 
 ---
 
