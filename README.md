@@ -109,7 +109,7 @@ The comparison includes training on the full split, on an ambiguity-focused subs
 
 ## Requirements
 
-Python 3.10+ is required (the codebase uses `str | Path` and `list[str]` annotations).
+Python 3.10+ is required.
 
 Dependencies:
 
@@ -278,7 +278,7 @@ The loader downloads the ChaosNLI release archive, reads `chaosNLI_snli.jsonl` a
 For each item with vote counts $v = (v\_{y})\_{y \in \mathcal{Y}}$, the possibility distribution is:
 
 $$
-\pi\_{y} = \max\!\left(\frac{v\_{y}}{v\_{\max}}, \rho\_{\pi}\right),
+\pi\_{y} = \max \left(\frac{v\_{y}}{v\_{\max}}, \rho\_{\pi}\right),
 $$
 
 where $v\_{\max} = \max\_{y} v\_{y}$ and $\rho\_{\pi} = 10^{-6}$. The admissible set $\mathcal{F}^{\text{box}}(\pi)$ is then constructed with the gap parameters described in Section 5.4.2 of the paper, using $\varepsilon\_{\text{cap}} = 0.05$.
